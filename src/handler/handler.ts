@@ -1,3 +1,5 @@
+import { Buffer } from 'node:buffer'
+
 import { chainEndpoint, chainID, mockReceipt } from '@/constants'
 import { apiErrorJSON, apiSuccess, apiSuccessJSON } from '@/responses'
 import { IEnv } from '@/types'
@@ -21,16 +23,27 @@ const handleSendRawTransaction = async (request: IRequest) => {
     return apiErrorJSON('no tx found', request.id)
   }
 
-  // TODO: get hash and decode transaction
-  const hash = ''
-  const tx = {}
+  const tx = params[0]
+
+  const buf = Buffer.from(tx)
+
+  const digest = await crypto.subtle.digest(
+    {
+      name: 'SHA-256',
+    },
+    buf,
+  )
+
+  const hexString = [...new Uint8Array(digest)].map((b) => b.toString(16).padStart(2, '0')).join('')
+
+  const hash = '0x' + hexString
 
   txs[hash] = tx
 
   return apiSuccessJSON(hash, request.id)
 }
 
-const handleGetRawTransactionByHash = async (request: IRequest) => {
+const handleGetTransactionByHash = async (request: IRequest) => {
   const { params } = request
   if (!params) {
     return apiErrorJSON('no hash found', request.id)
@@ -43,7 +56,7 @@ const handleGetRawTransactionByHash = async (request: IRequest) => {
 
   delete txs[params[0]]
 
-  return apiSuccessJSON(transaction, request.id)
+  return apiSuccessJSON(JSON.stringify({ raw: transaction }), request.id)
 }
 
 const handleGetTransactionReceipt = async (request: IRequest) => {
@@ -51,6 +64,7 @@ const handleGetTransactionReceipt = async (request: IRequest) => {
   if (!params) {
     return apiErrorJSON('no hash found', request.id)
   }
+
   const transactionReceipt = mockReceipt(params[0])
 
   return apiSuccessJSON(transactionReceipt, request.id)
@@ -73,36 +87,19 @@ export async function handle(request: Request, env: IEnv, ctx: any, data: Record
 
   if (method === 'POST') {
     const payload: IRequest = await request.json()
-
     switch (payload.method) {
       case 'eth_chainId':
         return handleChainIdRequest(payload.id)
-      case 'eth_blockNumber':
-        return relayRequest(payload)
-      case 'eth_gasPrice':
-        return relayRequest(payload)
-      case 'eth_estimateGas':
-        return relayRequest(payload)
-      case 'eth_getBalance':
-        return relayRequest(payload)
       case 'net_version':
         return handleChainIdRequest(payload.id)
-      case 'eth_getBlockByNumber':
-        return relayRequest(payload)
-      case 'eth_getTransactionCount':
-        return relayRequest(payload)
-      case 'eth_call':
-        return relayRequest(payload)
-      case 'eth_getCode':
-        return relayRequest(payload)
       case 'eth_sendRawTransaction':
         return handleSendRawTransaction(payload)
-      case 'eth_getRawTransactionByHash':
-        return handleGetRawTransactionByHash(payload)
+      case 'eth_getTransactionByHash':
+        return handleGetTransactionByHash(payload)
       case 'eth_getTransactionReceipt':
         return handleGetTransactionReceipt(payload)
       default:
-        return apiErrorJSON('unknown method', payload.id)
+        return relayRequest(payload)
     }
   }
 
