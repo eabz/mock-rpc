@@ -1,6 +1,6 @@
 import { Buffer } from 'node:buffer'
 
-import { chainEndpoint, chainID, mockReceipt } from '@/constants'
+import { chainEndpoint, chainID } from '@/constants'
 import { apiErrorJSON, apiSuccess, apiSuccessJSON } from '@/responses'
 import { IEnv } from '@/types'
 
@@ -12,26 +12,6 @@ export interface IRequest {
   method?: string
   params?: any[]
   result?: any
-}
-
-const getLatestBlock = async (): Promise<string> => {
-  const request: IRequest = { id: 1, jsonrpc: '2.0', method: 'eth_blockNumber', params: [] }
-
-  const response = await fetch(chainEndpoint, { body: JSON.stringify(request), method: 'POST' })
-
-  const data: IRequest = await response.json()
-
-  return data.result as string
-}
-
-const getBlockHash = async (block: string): Promise<{ hash: string }> => {
-  const request: IRequest = { id: 1, jsonrpc: '2.0', method: 'eth_getBlockByNumber', params: [block] }
-
-  const response = await fetch(chainEndpoint, { body: JSON.stringify(request), method: 'POST' })
-
-  const data: IRequest = await response.json()
-
-  return data.result as { hash: string }
 }
 
 const handleChainIdRequest = async (id: number) => {
@@ -66,7 +46,6 @@ const handleSendRawTransaction = async (request: IRequest) => {
 
 const handleGetTransactionByHash = async (request: IRequest) => {
   const { params } = request
-
   if (!params) {
     return apiErrorJSON('no hash found', request.id)
   }
@@ -74,30 +53,14 @@ const handleGetTransactionByHash = async (request: IRequest) => {
   const hash = params[0]
 
   const transaction = txs[hash]
+
   if (!transaction) {
     return apiErrorJSON('no tx found', request.id)
   }
 
   delete txs[hash]
 
-  return apiSuccessJSON(JSON.stringify(transaction), request.id)
-}
-
-const handleGetTransactionReceipt = async (request: IRequest) => {
-  const { params } = request
-  if (!params) {
-    return apiErrorJSON('no hash found', request.id)
-  }
-
-  const hash = params[0]
-
-  const block = await getLatestBlock()
-
-  const { hash: blockHash } = await getBlockHash(block)
-
-  const transactionReceipt = mockReceipt(blockHash, block, hash)
-
-  return apiSuccessJSON(JSON.stringify(transactionReceipt), request.id)
+  return apiSuccessJSON(transaction, request.id)
 }
 
 const relayRequest = async (request: IRequest) => {
@@ -127,8 +90,6 @@ export async function handle(request: Request, env: IEnv, ctx: any, data: Record
         return handleSendRawTransaction(payload)
       case 'eth_getTransactionByHash':
         return handleGetTransactionByHash(payload)
-      case 'eth_getTransactionReceipt':
-        return handleGetTransactionReceipt(payload)
       default:
         return relayRequest(payload)
     }
