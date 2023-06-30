@@ -1,0 +1,6 @@
+name = "mock-rpc"
+main = "src/index.ts"
+compatibility_date = "2023-01-21"
+compatibility_flags = [ "nodejs_compat" ]
+
+kv_namespaces = []

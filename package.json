@@ -1,0 +1,32 @@
+{
+  "dependencies": {
+    "itty-cors": "^0.3.6",
+    "itty-router": "^4.0.13"
+  },
+  "devDependencies": {
+    "@cloudflare/workers-types": "^4.20230518.0",
+    "@types/node": "^20.3.2",
+    "@typescript-eslint/eslint-plugin": "^5.60.1",
+    "@typescript-eslint/parser": "^5.60.1",
+    "eslint": "^8.43.0",
+    "eslint-config-prettier": "^8.8.0",
+    "eslint-plugin-prettier": "^4.2.1",
+    "eslint-plugin-simple-import-sort": "^10.0.0",
+    "eslint-plugin-sort-keys-custom-order-fix": "^0.1.1",
+    "eslint-plugin-typescript-sort-keys": "^2.3.0",
+    "eslint-plugin-unused-imports": "^2.0.0",
+    "prettier": "^2.8.8",
+    "typescript": "^5.1.6",
+    "wrangler": "^3.1.1"
+  },
+  "name": "mock-rpc",
+  "private": true,
+  "scripts": {
+    "deploy": "wrangler deploy",
+    "format": "prettier --ignore-path .gitignore '**/*.{md,json,ts,js}' --write",
+    "lint": "eslint --ignore-path .gitignore --ignore-path .eslintignore '**/*.{md,json,ts}' --max-warnings=0 --fix",
+    "start": "wrangler dev",
+    "tscheck": "tsc -p tsconfig.json --noEmit"
+  },
+  "version": "1.0.0"
+}
