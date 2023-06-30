@@ -1,17 +1,67 @@
-import { chainID, genesisBlock } from '@/constants'
+import { chainEndpoint, chainID, mockReceipt } from '@/constants'
 import { apiErrorJSON, apiSuccess, apiSuccessJSON } from '@/responses'
 import { IEnv } from '@/types'
+
+const txs = {}
+
+export interface IRequest {
+  id: number
+  method?: string
+  params?: any[]
+  result?: any
+}
 
 const handleChainIdRequest = async (id: number) => {
   return apiSuccessJSON(chainID, id)
 }
 
-const handleSimple = async (id: number) => {
-  return apiSuccessJSON('0x0', id)
+const handleSendRawTransaction = async (request: IRequest) => {
+  const { params } = request
+  if (!params) {
+    return apiErrorJSON('no tx found', request.id)
+  }
+
+  // TODO: get hash and decode transaction
+  const hash = ''
+  const tx = {}
+
+  txs[hash] = tx
+
+  return apiSuccessJSON(hash, request.id)
 }
 
-const handleGetBlock = async (id: number) => {
-  return apiSuccessJSON(genesisBlock, id)
+const handleGetRawTransactionByHash = async (request: IRequest) => {
+  const { params } = request
+  if (!params) {
+    return apiErrorJSON('no hash found', request.id)
+  }
+
+  const transaction = txs[params[0]]
+  if (!transaction) {
+    return apiErrorJSON('no tx found', request.id)
+  }
+
+  delete txs[params[0]]
+
+  return apiSuccessJSON(transaction, request.id)
+}
+
+const handleGetTransactionReceipt = async (request: IRequest) => {
+  const { params } = request
+  if (!params) {
+    return apiErrorJSON('no hash found', request.id)
+  }
+  const transactionReceipt = mockReceipt(params[0])
+
+  return apiSuccessJSON(transactionReceipt, request.id)
+}
+
+const relayRequest = async (request: IRequest) => {
+  const response = await fetch(chainEndpoint, { body: JSON.stringify(request), method: 'POST' })
+
+  const data: IRequest = await response.json()
+
+  return apiSuccessJSON(data.result, request.id)
 }
 
 export async function handle(request: Request, env: IEnv, ctx: any, data: Record<string, any>) {
@@ -22,24 +72,36 @@ export async function handle(request: Request, env: IEnv, ctx: any, data: Record
   }
 
   if (method === 'POST') {
-    const payload: { id: number; method: string; params: any[] } = await request.json()
+    const payload: IRequest = await request.json()
 
     switch (payload.method) {
       case 'eth_chainId':
         return handleChainIdRequest(payload.id)
       case 'eth_blockNumber':
-        return handleSimple(payload.id)
+        return relayRequest(payload)
       case 'eth_gasPrice':
-        return handleSimple(payload.id)
+        return relayRequest(payload)
+      case 'eth_estimateGas':
+        return relayRequest(payload)
       case 'eth_getBalance':
-        return handleSimple(payload.id)
+        return relayRequest(payload)
       case 'net_version':
         return handleChainIdRequest(payload.id)
       case 'eth_getBlockByNumber':
-        return handleGetBlock(payload.id)
+        return relayRequest(payload)
+      case 'eth_getTransactionCount':
+        return relayRequest(payload)
+      case 'eth_call':
+        return relayRequest(payload)
+      case 'eth_getCode':
+        return relayRequest(payload)
+      case 'eth_sendRawTransaction':
+        return handleSendRawTransaction(payload)
+      case 'eth_getRawTransactionByHash':
+        return handleGetRawTransactionByHash(payload)
+      case 'eth_getTransactionReceipt':
+        return handleGetTransactionReceipt(payload)
       default:
-        console.log(payload, payload.params)
-
         return apiErrorJSON('unknown method', payload.id)
     }
   }
