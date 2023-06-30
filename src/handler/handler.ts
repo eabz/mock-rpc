@@ -8,9 +8,30 @@ const txs = {}
 
 export interface IRequest {
   id: number
+  jsonrpc: string
   method?: string
   params?: any[]
   result?: any
+}
+
+const getLatestBlock = async (): Promise<string> => {
+  const request: IRequest = { id: 1, jsonrpc: '2.0', method: 'eth_blockNumber', params: [] }
+
+  const response = await fetch(chainEndpoint, { body: JSON.stringify(request), method: 'POST' })
+
+  const data: IRequest = await response.json()
+
+  return data.result as string
+}
+
+const getBlockHash = async (block: string): Promise<{ hash: string }> => {
+  const request: IRequest = { id: 1, jsonrpc: '2.0', method: 'eth_getBlockByNumber', params: [block] }
+
+  const response = await fetch(chainEndpoint, { body: JSON.stringify(request), method: 'POST' })
+
+  const data: IRequest = await response.json()
+
+  return data.result as { hash: string }
 }
 
 const handleChainIdRequest = async (id: number) => {
@@ -65,7 +86,13 @@ const handleGetTransactionReceipt = async (request: IRequest) => {
     return apiErrorJSON('no hash found', request.id)
   }
 
-  const transactionReceipt = mockReceipt(params[0])
+  const hash = params[0]
+
+  const block = await getLatestBlock()
+
+  const { hash: blockHash } = await getBlockHash(block)
+
+  const transactionReceipt = mockReceipt(hash, block, blockHash)
 
   return apiSuccessJSON(transactionReceipt, request.id)
 }
