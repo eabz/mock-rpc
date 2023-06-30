@@ -66,16 +66,19 @@ const handleSendRawTransaction = async (request: IRequest) => {
 
 const handleGetTransactionByHash = async (request: IRequest) => {
   const { params } = request
+
   if (!params) {
     return apiErrorJSON('no hash found', request.id)
   }
 
-  const transaction = txs[params[0]]
+  const hash = params[0]
+
+  const transaction = txs[hash]
   if (!transaction) {
     return apiErrorJSON('no tx found', request.id)
   }
 
-  delete txs[params[0]]
+  delete txs[hash]
 
   return apiSuccessJSON(JSON.stringify(transaction), request.id)
 }
@@ -92,9 +95,9 @@ const handleGetTransactionReceipt = async (request: IRequest) => {
 
   const { hash: blockHash } = await getBlockHash(block)
 
-  const transactionReceipt = mockReceipt(hash, block, blockHash)
+  const transactionReceipt = mockReceipt(blockHash, block, hash)
 
-  return apiSuccessJSON(transactionReceipt, request.id)
+  return apiSuccessJSON(JSON.stringify(transactionReceipt), request.id)
 }
 
 const relayRequest = async (request: IRequest) => {
@@ -114,6 +117,7 @@ export async function handle(request: Request, env: IEnv, ctx: any, data: Record
 
   if (method === 'POST') {
     const payload: IRequest = await request.json()
+
     switch (payload.method) {
       case 'eth_chainId':
         return handleChainIdRequest(payload.id)
@@ -129,6 +133,4 @@ export async function handle(request: Request, env: IEnv, ctx: any, data: Record
         return relayRequest(payload)
     }
   }
-
-  return {}
 }

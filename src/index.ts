@@ -24,7 +24,6 @@ export default {
 
       return corsify(res)
     } catch (e) {
-      console.log(e)
       return apiError('internal server error', 500)
     }
   },
