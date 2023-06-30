@@ -77,7 +77,7 @@ const handleGetTransactionByHash = async (request: IRequest) => {
 
   delete txs[params[0]]
 
-  return apiSuccessJSON(JSON.stringify({ raw: transaction }), request.id)
+  return apiSuccessJSON(JSON.stringify(transaction), request.id)
 }
 
 const handleGetTransactionReceipt = async (request: IRequest) => {
