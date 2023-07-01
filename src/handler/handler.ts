@@ -4,8 +4,6 @@ import { chainEndpoint, chainID } from '@/constants'
 import { apiErrorJSON, apiSuccess, apiSuccessJSON } from '@/responses'
 import { IEnv } from '@/types'
 
-const txs = {}
-
 export interface IRequest {
   id: number
   jsonrpc: string
@@ -18,7 +16,7 @@ const handleChainIdRequest = async (id: number) => {
   return apiSuccessJSON(chainID, id)
 }
 
-const handleSendRawTransaction = async (request: IRequest) => {
+const handleSendRawTransaction = async (request: IRequest, env: IEnv) => {
   const { params } = request
   if (!params) {
     return apiErrorJSON('no tx found', request.id)
@@ -39,12 +37,13 @@ const handleSendRawTransaction = async (request: IRequest) => {
 
   const hash = '0x' + hexString
 
-  txs[hash] = tx
+  // @ts-ignore
+  await env.STORAGE.put(hash, tx)
 
   return apiSuccessJSON(hash, request.id)
 }
 
-const handleGetTransactionByHash = async (request: IRequest) => {
+const handleGetTransactionByHash = async (request: IRequest, env: IEnv) => {
   const { params } = request
   if (!params) {
     return apiErrorJSON('no hash found', request.id)
@@ -52,13 +51,15 @@ const handleGetTransactionByHash = async (request: IRequest) => {
 
   const hash = params[0]
 
-  const transaction = txs[hash]
+  // @ts-ignore
+  const transaction = await env.STORAGE.get(hash)
 
   if (!transaction) {
     return apiErrorJSON('no tx found', request.id)
   }
 
-  delete txs[hash]
+  // @ts-ignore
+  await env.STORAGE.delete(hash)
 
   return apiSuccessJSON(transaction, request.id)
 }
@@ -87,9 +88,9 @@ export async function handle(request: Request, env: IEnv, ctx: any, data: Record
       case 'net_version':
         return handleChainIdRequest(payload.id)
       case 'eth_sendRawTransaction':
-        return handleSendRawTransaction(payload)
+        return handleSendRawTransaction(payload, env)
       case 'eth_getTransactionByHash':
-        return handleGetTransactionByHash(payload)
+        return handleGetTransactionByHash(payload, env)
       default:
         return relayRequest(payload)
     }
