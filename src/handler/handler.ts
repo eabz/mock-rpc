@@ -1,6 +1,6 @@
 import { Buffer } from 'node:buffer'
 
-import { chainEndpoint, chainID } from '@/constants'
+import { getRPC } from '@/constants'
 import { apiErrorJSON, apiSuccess, apiSuccessJSON } from '@/responses'
 import { IEnv } from '@/types'
 
@@ -12,8 +12,8 @@ export interface IRequest {
   result?: any
 }
 
-const handleChainIdRequest = async (id: number) => {
-  return apiSuccessJSON(chainID, id)
+const handleChainIdRequest = async (env: IEnv, id: number) => {
+  return apiSuccessJSON(getRPC(env), id)
 }
 
 const handleSendRawTransaction = async (request: IRequest, env: IEnv) => {
@@ -64,8 +64,8 @@ const handleGetTransactionByHash = async (request: IRequest, env: IEnv) => {
   return apiSuccessJSON(transaction, request.id)
 }
 
-const relayRequest = async (request: IRequest) => {
-  const response = await fetch(chainEndpoint, { body: JSON.stringify(request), method: 'POST' })
+const relayRequest = async (env: IEnv, request: IRequest) => {
+  const response = await fetch(getRPC(env), { body: JSON.stringify(request), method: 'POST' })
 
   const data: IRequest = await response.json()
 
@@ -84,15 +84,15 @@ export async function handle(request: Request, env: IEnv, ctx: any, data: Record
 
     switch (payload.method) {
       case 'eth_chainId':
-        return handleChainIdRequest(payload.id)
+        return handleChainIdRequest(env, payload.id)
       case 'net_version':
-        return handleChainIdRequest(payload.id)
+        return handleChainIdRequest(env, payload.id)
       case 'eth_sendRawTransaction':
         return handleSendRawTransaction(payload, env)
       case 'eth_getTransactionByHash':
         return handleGetTransactionByHash(payload, env)
       default:
-        return relayRequest(payload)
+        return relayRequest(env, payload)
     }
   }
 }
