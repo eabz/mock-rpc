@@ -6,3 +6,13 @@ compatibility_flags = [ "nodejs_compat" ]
 kv_namespaces = [
     { binding = "STORAGE", id = "" }
 ]
+
+route = "zkevm.kindynos.mx"
+
+[env.dev]
+kv_namespaces = [
+    { binding = "STORAGE", id = "" }
+]
+
+vars = { TESTNET = true }
+route = "zkevm-testnet.kindynos.mx"
