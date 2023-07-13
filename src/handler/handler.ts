@@ -12,10 +12,6 @@ export interface IRequest {
   result?: any
 }
 
-const handleChainIdRequest = async (env: IEnv, id: number) => {
-  return apiSuccessJSON(getRPC(env), id)
-}
-
 const handleSendRawTransaction = async (request: IRequest, env: IEnv) => {
   const { params } = request
   if (!params) {
@@ -51,14 +47,12 @@ const handleGetTransactionByHash = async (request: IRequest, env: IEnv) => {
 
   const hash = params[0]
 
-  // @ts-ignore
   const transaction = await env.STORAGE.get(hash)
 
   if (!transaction) {
-    return apiErrorJSON('no tx found', request.id)
+    return relayRequest(env, request)
   }
 
-  // @ts-ignore
   await env.STORAGE.delete(hash)
 
   return apiSuccessJSON(transaction, request.id)
@@ -72,7 +66,7 @@ const relayRequest = async (env: IEnv, request: IRequest) => {
   return apiSuccessJSON(data.result, request.id)
 }
 
-export async function handle(request: Request, env: IEnv, ctx: any, data: Record<string, any>) {
+export async function handle(request: Request, env: IEnv) {
   const { method } = request
 
   if (method === 'GET') {
@@ -83,10 +77,6 @@ export async function handle(request: Request, env: IEnv, ctx: any, data: Record
     const payload: IRequest = await request.json()
 
     switch (payload.method) {
-      case 'eth_chainId':
-        return handleChainIdRequest(env, payload.id)
-      case 'net_version':
-        return handleChainIdRequest(env, payload.id)
       case 'eth_sendRawTransaction':
         return handleSendRawTransaction(payload, env)
       case 'eth_getTransactionByHash':

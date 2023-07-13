@@ -1,4 +1,4 @@
 export interface IEnv {
-  STORAGE: 'STORAGE'
-  TESTNET: 'TESTNET'
+  STORAGE: KVNamespace
+  TESTNET: KVNamespace
 }
